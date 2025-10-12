@@ -35,4 +35,4 @@ This repository contains a `docker-compose.yml` setup for a comprehensive, self-
     docker compose up -d
     ```
 
-The services will now be running and accessible at their respective ports on your server's IP address
+The services will now be running and accessible at their respective ports on your server's IP address. Make sure you note down the ports
