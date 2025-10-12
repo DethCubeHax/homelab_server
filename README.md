@@ -18,7 +18,7 @@ This repository contains a `docker-compose.yml` setup for a comprehensive, self-
 1.  **Clone the Repository**
     ```bash
     git clone https://github.com/DethCubeHax/homelab_server
-    cd your-repo-name
+    cd homelab_server
     ```
 
 2.  **Configure Your Environment**
