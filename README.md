@@ -50,7 +50,7 @@ Create config and data directories for every path in `.env` before starting serv
 
 ### 2. Customize domains (if not using the defaults)
 
-The included `matrix/caddy/Caddyfile` routes hostnames like `jellyfin.example.com`. Search-and-replace `example.com` with your domain in:
+The included `matrix/caddy/Caddyfile` uses `*.example.com` hostnames. Replace `example.com` with your own domain in:
 
 - `matrix/caddy/Caddyfile`
 - `matrix/element/config.json`
