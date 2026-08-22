@@ -1,0 +1,123 @@
+{
+	log {
+		output file /var/log/caddy/access.log {
+			roll_size 100mb
+			roll_keep 3
+		}
+		format json
+	}
+}
+
+matrix.example.com:80 {
+	@turnify path_regexp turnify ^/_matrix/client/(api/v1|r0|v3|unstable)/voip/turnServer$
+	handle @turnify {
+		reverse_proxy turnify:4499
+	}
+
+	@jwt path /livekit/jwt/*
+	handle @jwt {
+		uri strip_prefix /livekit/jwt
+		reverse_proxy lk-jwt-service:8080
+	}
+
+	@sfu path /livekit/sfu/*
+	handle @sfu {
+		uri strip_prefix /livekit/sfu
+		reverse_proxy livekit:7880
+	}
+
+	handle {
+		reverse_proxy synapse:8008
+	}
+}
+
+chat.example.com:80 {
+	reverse_proxy element:80
+}
+
+jellyfin.example.com:80 {
+	reverse_proxy host.docker.internal:8096 {
+		header_up Host {host}
+		header_up X-Real-IP {remote_host}
+		header_up X-Forwarded-For {remote_host}
+		header_up X-Forwarded-Proto https
+	}
+}
+
+music.example.com:80 {
+	reverse_proxy navidrome:4533 {
+		header_up Host {host}
+		header_up X-Real-IP {remote_host}
+		header_up X-Forwarded-For {remote_host}
+		header_up X-Forwarded-Proto https
+	}
+}
+
+photos.example.com:80 {
+	reverse_proxy immich-server:2283 {
+		header_up Host {host}
+		header_up X-Real-IP {remote_host}
+		header_up X-Forwarded-For {remote_host}
+		header_up X-Forwarded-Proto https
+	}
+}
+
+sonarr.example.com:80 {
+	reverse_proxy sonarr:8989 {
+		header_up Host {host}
+		header_up X-Real-IP {remote_host}
+		header_up X-Forwarded-For {remote_host}
+		header_up X-Forwarded-Proto https
+	}
+}
+
+radarr.example.com:80 {
+	reverse_proxy radarr:7878 {
+		header_up Host {host}
+		header_up X-Real-IP {remote_host}
+		header_up X-Forwarded-For {remote_host}
+		header_up X-Forwarded-Proto https
+	}
+}
+
+lidarr.example.com:80 {
+	reverse_proxy lidarr:8686 {
+		header_up Host {host}
+		header_up X-Real-IP {remote_host}
+		header_up X-Forwarded-For {remote_host}
+		header_up X-Forwarded-Proto https
+	}
+}
+
+grafana.example.com:80 {
+	reverse_proxy grafana:3000 {
+		header_up Host {host}
+		header_up X-Real-IP {remote_host}
+		header_up X-Forwarded-For {remote_host}
+		header_up X-Forwarded-Proto https
+	}
+}
+
+cloud.example.com:80 {
+	request_body {
+		max_size 0
+	}
+	reverse_proxy nextcloud:80 {
+		header_up Host {host}
+		header_up X-Forwarded-Host {host}
+		header_up X-Real-IP {remote_host}
+		header_up X-Forwarded-For {remote_host}
+		header_up X-Forwarded-Proto https
+	}
+}
+
+example.com:80 {
+	handle /.well-known/matrix/* {
+		header Access-Control-Allow-Origin *
+		header Access-Control-Allow-Methods "GET, OPTIONS"
+		reverse_proxy synapse:8008
+	}
+	handle {
+		respond 404
+	}
+}

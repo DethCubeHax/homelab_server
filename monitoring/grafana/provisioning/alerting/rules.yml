@@ -1,0 +1,85 @@
+apiVersion: 1
+
+groups:
+  - orgId: 1
+    name: security-alerts
+    folder: Security
+    interval: 1m
+    rules:
+      - uid: ssh-login-alert
+        title: SSH Login Detected
+        condition: C
+        data:
+          - refId: A
+            relativeTimeRange:
+              from: 300
+              to: 0
+            datasourceUid: loki
+            model:
+              expr: 'count_over_time({category="security", service="ssh", event="login_success"}[5m])'
+              refId: A
+          - refId: B
+            datasourceUid: __expr__
+            model:
+              expression: A
+              type: reduce
+              reducer: last
+              refId: B
+          - refId: C
+            datasourceUid: __expr__
+            model:
+              expression: B
+              type: threshold
+              conditions:
+                - evaluator:
+                    type: gt
+                    params: [0]
+              refId: C
+        noDataState: OK
+        execErrState: Error
+        for: 0s
+        annotations:
+          summary: "SSH login detected on the NAS"
+          description: "Someone logged in via SSH. Check Security Audit dashboard in Grafana."
+        labels:
+          category: security
+          severity: warning
+
+      - uid: failed-login-alert
+        title: Failed Login Attempts
+        condition: C
+        data:
+          - refId: A
+            relativeTimeRange:
+              from: 300
+              to: 0
+            datasourceUid: loki
+            model:
+              expr: 'count_over_time({category="security", event="login_failed"}[5m])'
+              refId: A
+          - refId: B
+            datasourceUid: __expr__
+            model:
+              expression: A
+              type: reduce
+              reducer: last
+              refId: B
+          - refId: C
+            datasourceUid: __expr__
+            model:
+              expression: B
+              type: threshold
+              conditions:
+                - evaluator:
+                    type: gt
+                    params: [5]
+              refId: C
+        noDataState: OK
+        execErrState: Error
+        for: 0s
+        annotations:
+          summary: "Multiple failed login attempts"
+          description: "More than 2 failed logins in 5 minutes across services."
+        labels:
+          category: security
+          severity: critical

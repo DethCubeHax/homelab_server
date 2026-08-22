@@ -1,0 +1,22 @@
+apiVersion: 1
+
+contactPoints:
+  - orgId: 1
+    name: email-alerts
+    receivers:
+      - uid: email-alerts
+        type: email
+        settings:
+          addresses: you@example.com
+          singleEmail: false
+
+policies:
+  - orgId: 1
+    receiver: email-alerts
+    group_by: ["alertname"]
+    routes:
+      - receiver: email-alerts
+        matchers:
+          - label = category
+            match = =
+            value = security

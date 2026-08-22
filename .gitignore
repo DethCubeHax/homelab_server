@@ -1,0 +1,17 @@
+# Local environment
+.env
+.env.*
+!.env.example
+env.local
+
+# LiveKit (copy livekit.yaml.example → livekit.yaml and fill from .env)
+matrix/livekit/livekit.yaml
+matrix/livekit/certs/*
+!matrix/livekit/certs/.gitkeep
+
+# Logs and runtime data
+*.log
+
+# OS / editor
+.DS_Store
+Thumbs.db

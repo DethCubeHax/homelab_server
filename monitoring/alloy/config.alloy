@@ -1,0 +1,378 @@
+// Grafana Alloy — curated security audit logs + system metrics export for Prometheus scrape.
+
+loki.write "default" {
+  endpoint {
+    url = "http://loki:3100/loki/api/v1/push"
+  }
+}
+
+// ---------------------------------------------------------------------------
+// SSH (/var/log/auth.log)
+// ---------------------------------------------------------------------------
+
+loki.source.file "ssh" {
+  targets = [{
+    __path__ = "/var/log/auth.log",
+    job      = "ssh",
+  }]
+  tail_from_end = true
+  forward_to    = [loki.process.ssh.receiver]
+}
+
+loki.process "ssh" {
+  stage.match {
+    selector = "{job=\"ssh\"} !~ \"sshd.*Accepted (publickey|password)|sshd.*Failed password|sshd.*Invalid user\""
+    action   = "drop"
+  }
+
+  stage.match {
+    selector = "{job=\"ssh\"} |~ \"sshd.*Accepted (publickey|password)\""
+
+    stage.regex {
+      expression = "sshd\\[\\d+\\]: Accepted (?P<method>publickey|password) for (?P<user>\\S+) from (?P<ip>\\S+)"
+    }
+
+    stage.template {
+      source   = "message"
+      template = "SSH login: user {{ .user }} from IP {{ .ip }} ({{ .method }})"
+    }
+
+    stage.static_labels {
+      values = {
+        category = "security",
+        service  = "ssh",
+        event    = "login_success",
+      }
+    }
+  }
+
+  stage.match {
+    selector = "{job=\"ssh\"} |~ \"sshd.*Failed password|sshd.*Invalid user\""
+
+    stage.regex {
+      expression = "sshd\\[\\d+\\]: (?:Failed password for|Invalid user) (?P<user>\\S+) from (?P<ip>\\S+)"
+    }
+
+    stage.template {
+      source   = "message"
+      template = "SSH failed login: user {{ .user }} from IP {{ .ip }}"
+    }
+
+    stage.static_labels {
+      values = {
+        category = "security",
+        service  = "ssh",
+        event    = "login_failed",
+      }
+    }
+  }
+
+  forward_to = [loki.write.default.receiver]
+}
+
+// ---------------------------------------------------------------------------
+// *arr apps (Sonarr / Radarr / Lidarr file logs)
+// ---------------------------------------------------------------------------
+
+loki.source.file "arr_apps" {
+  targets = [
+    {
+      __path__ = "/arr-logs/sonarr/sonarr.txt",
+      job      = "sonarr",
+      service  = "sonarr",
+    },
+    {
+      __path__ = "/arr-logs/radarr/radarr.txt",
+      job      = "radarr",
+      service  = "radarr",
+    },
+    {
+      __path__ = "/arr-logs/lidarr/lidarr.txt",
+      job      = "lidarr",
+      service  = "lidarr",
+    },
+  ]
+  tail_from_end = true
+  forward_to    = [loki.process.arr.receiver]
+}
+
+loki.process "arr" {
+  stage.match {
+    selector = "{job=~\"sonarr|radarr|lidarr\"} !~ \"Auth-Success|Auth-Logout\""
+    action   = "drop"
+  }
+
+  stage.match {
+    selector = "{job=~\"sonarr|radarr|lidarr\"} |~ \"Auth-Logout ip .* username ''\""
+    action   = "drop"
+  }
+
+  stage.match {
+    selector = "{job=~\"sonarr|radarr|lidarr\"} |~ \"Auth-Success\""
+
+    stage.regex {
+      expression = "Auth-Success ip (?P<ip>\\S+) username '(?P<user>[^']+)'"
+    }
+
+    stage.template {
+      source   = "message"
+      template = "User {{ .user }} logged into {{ .service }} from IP {{ .ip }}"
+    }
+
+    stage.static_labels {
+      values = {
+        category = "security",
+        event    = "login_success",
+      }
+    }
+  }
+
+  stage.match {
+    selector = "{job=~\"sonarr|radarr|lidarr\"} |~ \"Auth-Logout\""
+
+    stage.regex {
+      expression = "Auth-Logout ip (?P<ip>\\S+) username '(?P<user>[^']+)'"
+    }
+
+    stage.drop {
+      source     = "user"
+      expression = "^$"
+    }
+
+    stage.template {
+      source   = "message"
+      template = "User {{ .user }} logged out of {{ .service }} from IP {{ .ip }}"
+    }
+
+    stage.static_labels {
+      values = {
+        category = "security",
+        event    = "logout",
+      }
+    }
+  }
+
+  forward_to = [loki.write.default.receiver]
+}
+
+// ---------------------------------------------------------------------------
+// Jellyfin (log files — no docker backfill spam)
+// ---------------------------------------------------------------------------
+
+local.file_match "jellyfin_logs" {
+  path_targets = [{
+    __address__ = "localhost",
+    __path__      = "/jellyfin-logs/log_*.log",
+    job           = "jellyfin",
+  }]
+}
+
+loki.source.file "jellyfin" {
+  targets       = local.file_match.jellyfin_logs.targets
+  tail_from_end = true
+  forward_to    = [loki.process.jellyfin.receiver]
+}
+
+loki.process "jellyfin" {
+  stage.match {
+    selector = "{job=\"jellyfin\"} !~ \"Authentication request for .+ has succeeded\""
+    action   = "drop"
+  }
+
+  stage.regex {
+    expression = "Authentication request for (?P<user>\\S+) has succeeded"
+  }
+
+  stage.template {
+    source   = "message"
+    template = "User {{ .user }} logged into Jellyfin"
+  }
+
+  stage.static_labels {
+    values = {
+      category = "security",
+      service  = "jellyfin",
+      event    = "login_success",
+    }
+  }
+
+  forward_to = [loki.write.default.receiver]
+}
+
+// ---------------------------------------------------------------------------
+// Caddy access log — web logins (Immich, Navidrome, Matrix HTTP)
+// ---------------------------------------------------------------------------
+
+loki.source.file "caddy" {
+  targets = [{
+    __path__ = "/var/log/caddy/access.log",
+    job      = "caddy",
+  }]
+  tail_from_end = true
+  forward_to    = [loki.process.caddy.receiver]
+}
+
+loki.process "caddy" {
+  stage.match {
+    selector = "{job=\"caddy\"} !~ \"POST.*(/api/auth/login|/auth/login|/_matrix/client/.*/login)\""
+    action   = "drop"
+  }
+
+  stage.match {
+    selector = "{job=\"caddy\"} |~ \"POST.*/api/auth/login.*\\\"status\\\":2\""
+
+    stage.regex {
+      expression = "Cf-Connecting-Ip\":\\[\"(?P<ip>[^\"]+)\"\\]"
+    }
+
+    stage.template {
+      source   = "message"
+      template = "User logged into Immich from IP {{ if .ip }}{{ .ip }}{{ else }}unknown{{ end }}"
+    }
+
+    stage.static_labels {
+      values = {
+        category = "security",
+        service  = "immich",
+        event    = "login_success",
+      }
+    }
+  }
+
+  stage.match {
+    selector = "{job=\"caddy\"} |~ \"POST.*/auth/login.*\\\"status\\\":2\""
+
+    stage.regex {
+      expression = "Cf-Connecting-Ip\":\\[\"(?P<ip>[^\"]+)\"\\]"
+    }
+
+    stage.template {
+      source   = "message"
+      template = "User logged into Navidrome from IP {{ if .ip }}{{ .ip }}{{ else }}unknown{{ end }}"
+    }
+
+    stage.static_labels {
+      values = {
+        category = "security",
+        service  = "navidrome",
+        event    = "login_success",
+      }
+    }
+  }
+
+  stage.match {
+    selector = "{job=\"caddy\"} |~ \"POST.*/_matrix/client/.*/login.*\\\"status\\\":2\""
+
+    stage.regex {
+      expression = "Cf-Connecting-Ip\":\\[\"(?P<ip>[^\"]+)\"\\]"
+    }
+
+    stage.template {
+      source   = "message"
+      template = "User logged into Matrix from IP {{ if .ip }}{{ .ip }}{{ else }}unknown{{ end }}"
+    }
+
+    stage.static_labels {
+      values = {
+        category = "security",
+        service  = "matrix",
+        event    = "login_success",
+      }
+    }
+  }
+
+  stage.match {
+    selector = "{job=\"caddy\"} |~ \"POST.*/api/auth/login.*\\\"status\\\":(401|403)\""
+
+    stage.regex {
+      expression = "Cf-Connecting-Ip\":\\[\"(?P<ip>[^\"]+)\"\\]"
+    }
+
+    stage.template {
+      source   = "message"
+      template = "Failed login on Immich from IP {{ if .ip }}{{ .ip }}{{ else }}unknown{{ end }}"
+    }
+
+    stage.static_labels {
+      values = {
+        category = "security",
+        service  = "immich",
+        event    = "login_failed",
+      }
+    }
+  }
+
+  stage.match {
+    selector = "{job=\"caddy\"}"
+    action   = "drop"
+  }
+
+  forward_to = [loki.write.default.receiver]
+}
+
+// ---------------------------------------------------------------------------
+// System events (smartd warnings, OOM) — critical only
+// ---------------------------------------------------------------------------
+
+loki.source.file "system" {
+  targets = [
+    {
+      __path__ = "/var/log/syslog",
+      job      = "system",
+    },
+  ]
+  tail_from_end = true
+  forward_to    = [loki.process.system.receiver]
+}
+
+loki.process "system" {
+  stage.match {
+    selector = "{job=\"system\"} !~ \"smartd|Out of memory|oom-kill|SMART.*FAIL|REALLOCATED|I/O error\""
+    action   = "drop"
+  }
+
+  stage.match {
+    selector = "{job=\"system\"} |~ \"smartd\""
+
+    stage.regex {
+      expression = "Device: (?P<device>/dev/\\S+)"
+    }
+
+    stage.template {
+      source   = "storage"
+      template = "{{ if eq .device \"/dev/sda\" }}Media HDD 4TB (/mnt/Media){{ else if eq .device \"/dev/nvme0n1\" }}NVMe SSD — OS 128GB (/) + Data 2TB (/mnt/Data){{ else }}{{ .device }}{{ end }}"
+    }
+
+    stage.template {
+      source   = "message"
+      template = "Disk health alert on {{ .storage }}"
+    }
+
+    stage.static_labels {
+      values = {
+        category = "system",
+        service  = "smartd",
+        event    = "disk_warning",
+      }
+    }
+  }
+
+  stage.match {
+    selector = "{job=\"system\"} |~ \"Out of memory|oom-kill\""
+
+    stage.template {
+      source   = "message"
+      template = "System alert: out of memory event detected"
+    }
+
+    stage.static_labels {
+      values = {
+        category = "system",
+        service  = "kernel",
+        event    = "oom",
+      }
+    }
+  }
+
+  forward_to = [loki.write.default.receiver]
+}
