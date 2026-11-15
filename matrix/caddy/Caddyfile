@@ -8,7 +8,7 @@
 	}
 }
 
-matrix.example.com:80 {
+matrix.{$MATRIX_SERVER_NAME:example.com}:80 {
 	@turnify path_regexp turnify ^/_matrix/client/(api/v1|r0|v3|unstable)/voip/turnServer$
 	handle @turnify {
 		reverse_proxy turnify:4499
@@ -31,11 +31,11 @@ matrix.example.com:80 {
 	}
 }
 
-chat.example.com:80 {
+chat.{$MATRIX_SERVER_NAME:example.com}:80 {
 	reverse_proxy element:80
 }
 
-jellyfin.example.com:80 {
+jellyfin.{$MATRIX_SERVER_NAME:example.com}:80 {
 	reverse_proxy host.docker.internal:8096 {
 		header_up Host {host}
 		header_up X-Real-IP {remote_host}
@@ -44,7 +44,7 @@ jellyfin.example.com:80 {
 	}
 }
 
-music.example.com:80 {
+music.{$MATRIX_SERVER_NAME:example.com}:80 {
 	reverse_proxy navidrome:4533 {
 		header_up Host {host}
 		header_up X-Real-IP {remote_host}
@@ -53,7 +53,7 @@ music.example.com:80 {
 	}
 }
 
-photos.example.com:80 {
+photos.{$MATRIX_SERVER_NAME:example.com}:80 {
 	reverse_proxy immich-server:2283 {
 		header_up Host {host}
 		header_up X-Real-IP {remote_host}
@@ -62,7 +62,7 @@ photos.example.com:80 {
 	}
 }
 
-sonarr.example.com:80 {
+sonarr.{$MATRIX_SERVER_NAME:example.com}:80 {
 	reverse_proxy sonarr:8989 {
 		header_up Host {host}
 		header_up X-Real-IP {remote_host}
@@ -71,7 +71,7 @@ sonarr.example.com:80 {
 	}
 }
 
-radarr.example.com:80 {
+radarr.{$MATRIX_SERVER_NAME:example.com}:80 {
 	reverse_proxy radarr:7878 {
 		header_up Host {host}
 		header_up X-Real-IP {remote_host}
@@ -80,7 +80,7 @@ radarr.example.com:80 {
 	}
 }
 
-seerr.example.com:80 {
+seerr.{$MATRIX_SERVER_NAME:example.com}:80 {
 	reverse_proxy seerr:5055 {
 		header_up Host {host}
 		header_up X-Real-IP {remote_host}
@@ -89,7 +89,7 @@ seerr.example.com:80 {
 	}
 }
 
-suggest.example.com:80 {
+suggest.{$MATRIX_SERVER_NAME:example.com}:80 {
 	reverse_proxy suggestarr:5000 {
 		header_up Host {host}
 		header_up X-Real-IP {remote_host}
@@ -98,7 +98,7 @@ suggest.example.com:80 {
 	}
 }
 
-lidarr.example.com:80 {
+lidarr.{$MATRIX_SERVER_NAME:example.com}:80 {
 	reverse_proxy lidarr:8686 {
 		header_up Host {host}
 		header_up X-Real-IP {remote_host}
@@ -107,7 +107,7 @@ lidarr.example.com:80 {
 	}
 }
 
-grafana.example.com:80 {
+grafana.{$MATRIX_SERVER_NAME:example.com}:80 {
 	reverse_proxy grafana:3000 {
 		header_up Host {host}
 		header_up X-Real-IP {remote_host}
@@ -116,7 +116,7 @@ grafana.example.com:80 {
 	}
 }
 
-cloud.example.com:80 {
+cloud.{$MATRIX_SERVER_NAME:example.com}:80 {
 	request_body {
 		max_size 0
 	}
@@ -129,7 +129,7 @@ cloud.example.com:80 {
 	}
 }
 
-example.com:80 {
+{$MATRIX_SERVER_NAME:example.com}:80 {
 	handle /.well-known/matrix/* {
 		header Access-Control-Allow-Origin *
 		header Access-Control-Allow-Methods "GET, OPTIONS"

@@ -17,6 +17,7 @@ import urllib.parse
 import urllib.request
 
 BASE = os.environ.get("MATRIX_BASE_URL", "http://synapse:8008")
+SERVER = os.environ.get("MATRIX_SERVER_NAME", "example.com")
 
 
 def require_env(name: str) -> str:
@@ -107,8 +108,8 @@ def main():
             print(f"  Removed widget: {skey}")
 
     for skey in (
-        "_@dethcube:example.com_JTFQWNLBBY_m.call",
-        "_@naznin:example.com_XPBZBZBCVP_m.call",
+        f"_@dethcube:{SERVER}_JTFQWNLBBY_m.call",
+        f"_@naznin:{SERVER}_XPBZBZBCVP_m.call",
     ):
         try:
             put_state(token, room_id, "org.matrix.msc3401.call.member", skey, {})
@@ -121,7 +122,7 @@ def main():
         "XOm5SMEQpO5c7IX3zuYWJo4F",
         "7A9Csu15s5QZFSbJ19LLoLMk",
         "4eZ6rEbRlYbBjpHzOmKjOQjX",
-        "m.jitsi_@nizam:example.com_1783348662219",
+        f"m.jitsi_@nizam:{SERVER}_1783348662219",
     ):
         try:
             put_state(token, room_id, "im.vector.modular.widgets", skey, {})

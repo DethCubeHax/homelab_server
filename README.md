@@ -51,12 +51,9 @@ Create config and data directories for every path in `.env` before starting serv
 
 ### 2. Customize domains (if not using the defaults)
 
-The included `matrix/caddy/Caddyfile` uses `*.example.com` hostnames. Replace `example.com` with your own domain in:
+Set `MATRIX_SERVER_NAME` in `.env`. Caddy and Grafana build `matrix.`, `jellyfin.`, `grafana.`, and the other hostnames from that value. Also set the full URLs that individual apps read from `.env`: `NEXTCLOUD_DOMAIN`, `IMMICH_SERVER_URL`, and `JELLYFIN_EXTERNAL_URL`.
 
-- `matrix/caddy/Caddyfile`
-- `matrix/element/config.json`
-- `env.example` / `.env` (`NEXTCLOUD_DOMAIN`, `IMMICH_SERVER_URL`, `MATRIX_SERVER_NAME`, etc.)
-- Grafana `GF_SERVER_ROOT_URL` in `docker-compose.yml` (or override via env)
+`matrix/element/config.json` is static JSON, so set its `base_url` and `server_name` to the same domain.
 
 ### 3. Start everything
 
