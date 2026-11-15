@@ -11,6 +11,25 @@ matrix/livekit/certs/*
 
 # Logs and runtime data
 *.log
+*.db
+
+# Python
+__pycache__/
+*.py[cod]
+
+# Browser and session files
+cookies.txt
+*cookies*.txt
+
+# This machine only. Not part of the stack.
+scripts/disk-health.sh
+scripts/install-disk-health.sh
+scripts/add-tunnel-hostnames.sh
+scripts/network-watchdog.sh
+scripts/install-network-watchdog.sh
+scripts/setup-suggestarr.py
+scripts/systemd/
+homelab-agent/
 
 # OS / editor
 .DS_Store
