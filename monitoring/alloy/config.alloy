@@ -7,6 +7,75 @@ loki.write "default" {
 }
 
 // ---------------------------------------------------------------------------
+// Docker container stdout/stderr (json-file logs via mounted container dir)
+// ---------------------------------------------------------------------------
+
+discovery.docker "containers" {
+  host = "unix:///var/run/docker.sock"
+}
+
+discovery.relabel "docker_containers" {
+  targets = discovery.docker.containers.targets
+
+  rule {
+    source_labels = ["__meta_docker_container_id"]
+    target_label  = "__path__"
+    replacement   = "/var/lib/docker/containers/$1/$1-json.log"
+  }
+
+  rule {
+    target_label = "job"
+    replacement  = "docker"
+  }
+
+  rule {
+    source_labels = ["__meta_docker_container_name"]
+    regex         = "/(.*)"
+    target_label  = "container_name"
+  }
+}
+
+loki.source.file "docker_containers" {
+  targets       = discovery.relabel.docker_containers.output
+  tail_from_end = false
+  forward_to    = [loki.process.docker_json.receiver]
+}
+
+loki.process "docker_json" {
+  stage.json {
+    expressions = {
+      log_line = "log",
+      stream   = "stream",
+    }
+  }
+
+  stage.output {
+    source = "log_line"
+  }
+
+  stage.labels {
+    values = {
+      stream = "",
+    }
+  }
+
+  forward_to = [loki.write.default.receiver]
+}
+
+// ---------------------------------------------------------------------------
+// Kernel logs (/var/log/kern.log)
+// ---------------------------------------------------------------------------
+
+loki.source.file "kernel" {
+  targets = [{
+    __path__ = "/var/log/kern.log",
+    job      = "kernel",
+  }]
+  tail_from_end = false
+  forward_to    = [loki.write.default.receiver]
+}
+
+// ---------------------------------------------------------------------------
 // SSH (/var/log/auth.log)
 // ---------------------------------------------------------------------------
 
@@ -15,16 +84,11 @@ loki.source.file "ssh" {
     __path__ = "/var/log/auth.log",
     job      = "ssh",
   }]
-  tail_from_end = true
+  tail_from_end = false
   forward_to    = [loki.process.ssh.receiver]
 }
 
 loki.process "ssh" {
-  stage.match {
-    selector = "{job=\"ssh\"} !~ \"sshd.*Accepted (publickey|password)|sshd.*Failed password|sshd.*Invalid user\""
-    action   = "drop"
-  }
-
   stage.match {
     selector = "{job=\"ssh\"} |~ \"sshd.*Accepted (publickey|password)\""
 
@@ -92,16 +156,11 @@ loki.source.file "arr_apps" {
       service  = "lidarr",
     },
   ]
-  tail_from_end = true
+  tail_from_end = false
   forward_to    = [loki.process.arr.receiver]
 }
 
 loki.process "arr" {
-  stage.match {
-    selector = "{job=~\"sonarr|radarr|lidarr\"} !~ \"Auth-Success|Auth-Logout\""
-    action   = "drop"
-  }
-
   stage.match {
     selector = "{job=~\"sonarr|radarr|lidarr\"} |~ \"Auth-Logout ip .* username ''\""
     action   = "drop"
@@ -169,16 +228,11 @@ local.file_match "jellyfin_logs" {
 
 loki.source.file "jellyfin" {
   targets       = local.file_match.jellyfin_logs.targets
-  tail_from_end = true
+  tail_from_end = false
   forward_to    = [loki.process.jellyfin.receiver]
 }
 
 loki.process "jellyfin" {
-  stage.match {
-    selector = "{job=\"jellyfin\"} !~ \"Authentication request for .+ has succeeded\""
-    action   = "drop"
-  }
-
   stage.regex {
     expression = "Authentication request for (?P<user>\\S+) has succeeded"
   }
@@ -208,16 +262,11 @@ loki.source.file "caddy" {
     __path__ = "/var/log/caddy/access.log",
     job      = "caddy",
   }]
-  tail_from_end = true
+  tail_from_end = false
   forward_to    = [loki.process.caddy.receiver]
 }
 
 loki.process "caddy" {
-  stage.match {
-    selector = "{job=\"caddy\"} !~ \"POST.*(/api/auth/login|/auth/login|/_matrix/client/.*/login)\""
-    action   = "drop"
-  }
-
   stage.match {
     selector = "{job=\"caddy\"} |~ \"POST.*/api/auth/login.*\\\"status\\\":2\""
 
@@ -302,11 +351,6 @@ loki.process "caddy" {
     }
   }
 
-  stage.match {
-    selector = "{job=\"caddy\"}"
-    action   = "drop"
-  }
-
   forward_to = [loki.write.default.receiver]
 }
 
@@ -321,16 +365,11 @@ loki.source.file "system" {
       job      = "system",
     },
   ]
-  tail_from_end = true
+  tail_from_end = false
   forward_to    = [loki.process.system.receiver]
 }
 
 loki.process "system" {
-  stage.match {
-    selector = "{job=\"system\"} !~ \"smartd|Out of memory|oom-kill|SMART.*FAIL|REALLOCATED|I/O error\""
-    action   = "drop"
-  }
-
   stage.match {
     selector = "{job=\"system\"} |~ \"smartd\""
 
@@ -375,4 +414,27 @@ loki.process "system" {
   }
 
   forward_to = [loki.write.default.receiver]
+}
+
+// ---------------------------------------------------------------------------
+// System Update Logs (apt/dpkg)
+// ---------------------------------------------------------------------------
+
+loki.source.file "apt" {
+  targets = [
+    {
+      __path__ = "/var/log/apt/history.log",
+      job      = "apt",
+    },
+    {
+      __path__ = "/var/log/apt/term.log",
+      job      = "apt",
+    },
+    {
+      __path__ = "/var/log/dpkg.log",
+      job      = "apt",
+    },
+  ]
+  tail_from_end = false
+  forward_to    = [loki.write.default.receiver]
 }

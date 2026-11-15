@@ -705,7 +705,7 @@
             "type": "loki",
             "uid": "loki"
           },
-          "expr": "{category=\"security\", service=\"jellyfin\"}",
+          "expr": "{container_name=\"jellyfin\"}",
           "refId": "A"
         }
       ],
@@ -890,7 +890,7 @@
             "type": "loki",
             "uid": "loki"
           },
-          "expr": "{category=\"security\", service=\"immich\"}",
+          "expr": "{container_name=\"immich_server\"}",
           "refId": "A"
         }
       ],
@@ -1075,7 +1075,7 @@
             "type": "loki",
             "uid": "loki"
           },
-          "expr": "{category=\"security\", service=\"navidrome\"}",
+          "expr": "{container_name=\"navidrome\"}",
           "refId": "A"
         }
       ],
@@ -1260,7 +1260,7 @@
             "type": "loki",
             "uid": "loki"
           },
-          "expr": "{category=\"security\", service=\"sonarr\"}",
+          "expr": "{container_name=\"sonarr\"}",
           "refId": "A"
         }
       ],
@@ -1445,7 +1445,7 @@
             "type": "loki",
             "uid": "loki"
           },
-          "expr": "{category=\"security\", service=\"radarr\"}",
+          "expr": "{container_name=\"radarr\"}",
           "refId": "A"
         }
       ],
@@ -1630,7 +1630,7 @@
             "type": "loki",
             "uid": "loki"
           },
-          "expr": "{category=\"security\", service=\"lidarr\"}",
+          "expr": "{container_name=\"lidarr\"}",
           "refId": "A"
         }
       ],
@@ -1815,7 +1815,7 @@
             "type": "loki",
             "uid": "loki"
           },
-          "expr": "{category=\"security\", service=\"matrix\"}",
+          "expr": "{container_name=\"synapse\"}",
           "refId": "A"
         }
       ],
@@ -2164,7 +2164,7 @@
             "type": "loki",
             "uid": "loki"
           },
-          "expr": "{category=\"security\", service=\"ssh\"}",
+          "expr": "{job=\"ssh\"}",
           "refId": "A"
         }
       ],
@@ -2177,6 +2177,105 @@
         "y": 196
       },
       "id": 80
+    },
+    {
+      "datasource": {
+        "type": "loki",
+        "uid": "loki"
+      },
+      "options": {
+        "dedupStrategy": "none",
+        "enableLogDetails": true,
+        "showLabels": true,
+        "showTime": true,
+        "sortOrder": "Descending",
+        "wrapLogMessage": true
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "loki",
+            "uid": "loki"
+          },
+          "expr": "{container_name=\"homelab_manager\"} |~ \"(?i)$log_level\"",
+          "refId": "A"
+        }
+      ],
+      "title": "Homelab Agent Logs (Thoughts & Actions)",
+      "type": "logs",
+      "gridPos": {
+        "h": 10,
+        "w": 24,
+        "x": 0,
+        "y": 204
+      },
+      "id": 81
+    },
+    {
+      "datasource": {
+        "type": "loki",
+        "uid": "loki"
+      },
+      "options": {
+        "dedupStrategy": "none",
+        "enableLogDetails": true,
+        "showLabels": true,
+        "showTime": true,
+        "sortOrder": "Descending",
+        "wrapLogMessage": true
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "loki",
+            "uid": "loki"
+          },
+          "expr": "{job=\"kernel\"}",
+          "refId": "A"
+        }
+      ],
+      "title": "Kernel Logs",
+      "type": "logs",
+      "gridPos": {
+        "h": 10,
+        "w": 12,
+        "x": 0,
+        "y": 214
+      },
+      "id": 82
+    },
+    {
+      "datasource": {
+        "type": "loki",
+        "uid": "loki"
+      },
+      "options": {
+        "dedupStrategy": "none",
+        "enableLogDetails": true,
+        "showLabels": true,
+        "showTime": true,
+        "sortOrder": "Descending",
+        "wrapLogMessage": true
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "loki",
+            "uid": "loki"
+          },
+          "expr": "{job=\"apt\"}",
+          "refId": "A"
+        }
+      ],
+      "title": "System Update & Package Logs",
+      "type": "logs",
+      "gridPos": {
+        "h": 10,
+        "w": 12,
+        "x": 12,
+        "y": 214
+      },
+      "id": 83
     }
   ],
   "refresh": "30s",
@@ -2185,7 +2284,56 @@
     "homelab"
   ],
   "templating": {
-    "list": []
+    "list": [
+      {
+        "current": {
+          "selected": true,
+          "text": [
+            "All"
+          ],
+          "value": [
+            "$__all"
+          ]
+        },
+        "hide": 0,
+        "includeAll": true,
+        "label": "Log Level",
+        "multi": true,
+        "name": "log_level",
+        "options": [
+          {
+            "selected": true,
+            "text": "All",
+            "value": "$__all"
+          },
+          {
+            "selected": false,
+            "text": "INFO",
+            "value": "INFO"
+          },
+          {
+            "selected": false,
+            "text": "WARNING",
+            "value": "WARNING"
+          },
+          {
+            "selected": false,
+            "text": "ERROR",
+            "value": "ERROR"
+          },
+          {
+            "selected": false,
+            "text": "DEBUG",
+            "value": "DEBUG"
+          }
+        ],
+        "query": "INFO, WARNING, ERROR, DEBUG",
+        "queryValue": "",
+        "skipUrlSync": false,
+        "type": "custom",
+        "allValue": ".*"
+      }
+    ]
   },
   "time": {
     "from": "now-24h",

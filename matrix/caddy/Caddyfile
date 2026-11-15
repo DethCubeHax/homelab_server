@@ -80,6 +80,24 @@ radarr.example.com:80 {
 	}
 }
 
+seerr.example.com:80 {
+	reverse_proxy seerr:5055 {
+		header_up Host {host}
+		header_up X-Real-IP {remote_host}
+		header_up X-Forwarded-For {remote_host}
+		header_up X-Forwarded-Proto https
+	}
+}
+
+suggest.example.com:80 {
+	reverse_proxy suggestarr:5000 {
+		header_up Host {host}
+		header_up X-Real-IP {remote_host}
+		header_up X-Forwarded-For {remote_host}
+		header_up X-Forwarded-Proto https
+	}
+}
+
 lidarr.example.com:80 {
 	reverse_proxy lidarr:8686 {
 		header_up Host {host}

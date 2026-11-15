@@ -1,12 +1,13 @@
 # Homelab Server Stack
 
-Self-hosted media, photos, cloud storage, chat, and monitoring — all orchestrated with Docker Compose. Public HTTPS access goes through **Cloudflare Tunnel → Caddy → services**
+Self-hosted media, photos, cloud storage, chat, and monitoring — all orchestrated with Docker Compose. Public HTTPS access goes through **Cloudflare Tunnel → Caddy → services**.
 
 ## Services
 
 | Category | Services |
 |----------|----------|
 | Media acquisition | Prowlarr, qBittorrent, Sonarr, Radarr, Lidarr, YouTubeDL-Material, Beets |
+| Requests & recommendations | Seerr (requests → Sonarr/Radarr), SuggestArr (watch-based suggestions) |
 | Media serving | Jellyfin (video), Navidrome (music) |
 | Photos | Immich |
 | Cloud & office | Nextcloud (+ built-in Collabora office) |
@@ -36,7 +37,7 @@ cp env.example .env
 nano .env
 ```
 
-Set **`PUID`**, **`PGID`**, and **`TZ`** first. Find your IDs with `id`
+Set **`PUID`**, **`PGID`**, and **`TZ`** first. Find your IDs with `id`.
 
 Generate strong passwords where noted:
 
@@ -46,7 +47,7 @@ openssl rand -hex 12   # LIVEKIT_API_KEY
 openssl rand -hex 32   # LIVEKIT_API_SECRET
 ```
 
-Create config and data directories for every path in `.env` before starting services
+Create config and data directories for every path in `.env` before starting services.
 
 ### 2. Customize domains (if not using the defaults)
 
@@ -63,19 +64,19 @@ The included `matrix/caddy/Caddyfile` uses `*.example.com` hostnames. Replace `e
 docker compose up -d
 ```
 
-Or start groups individually (see each section below)
+Or start groups individually (see each section below).
 
 ---
 
 ## Cloudflare Tunnel & Caddy
 
-These two services expose everything over HTTPS without opening ports on your router
+These two services expose everything over HTTPS without opening ports on your router.
 
 ### Cloudflare Tunnel
 
-1. Cloudflare Zero Trust → **Networks → Tunnels** → create a tunnel
-2. Copy the tunnel token into `.env` as `CLOUDFLARE_TUNNEL_TOKEN`
-3. Add **Public Hostnames** pointing to **`http://caddy:80`** for each subdomain you use
+1. Cloudflare Zero Trust → **Networks → Tunnels** → create a tunnel.
+2. Copy the tunnel token into `.env` as `CLOUDFLARE_TUNNEL_TOKEN`.
+3. Add **Public Hostnames** pointing to **`http://caddy:80`** for each subdomain you use.
 
 | Public hostname | Caddy route (see Caddyfile) |
 |-----------------|----------------------------|
@@ -89,6 +90,8 @@ These two services expose everything over HTTPS without opening ports on your ro
 | `sonarr.yourdomain.com` | Sonarr |
 | `radarr.yourdomain.com` | Radarr |
 | `lidarr.yourdomain.com` | Lidarr |
+| `seerr.yourdomain.com` | Seerr (requests) |
+| `suggestarr.yourdomain.com` | SuggestArr (recommendations) |
 | `yourdomain.com` | Matrix `.well-known` (optional) |
 
 4. Start the tunnel:
@@ -97,7 +100,7 @@ These two services expose everything over HTTPS without opening ports on your ro
 docker compose up -d caddy cloudflared
 ```
 
-Caddy must be running before the tunnel connects
+Caddy must be running before the tunnel connects.
 
 ---
 
@@ -105,7 +108,7 @@ Caddy must be running before the tunnel connects
 
 ### Prowlarr
 
-Indexer manager for the *arr stack
+Indexer manager for the *arr stack.
 
 **`.env`:** `PROWLARR_CONFIG_DIR`
 
@@ -113,13 +116,13 @@ Indexer manager for the *arr stack
 docker compose up -d prowlarr
 ```
 
-**Setup:** Open `http://localhost:9696` → add indexers → in each *arr app, add Prowlarr as an indexer (Settings → Apps in Prowlarr gives you the URLs/API keys)
+**Setup:** Open `http://localhost:9696` → add indexers → in each *arr app, add Prowlarr as an indexer (Settings → Apps in Prowlarr gives you the URLs/API keys).
 
 ---
 
 ### qBittorrent
 
-Torrent client used by Sonarr/Radarr/Lidarr
+Torrent client used by Sonarr/Radarr/Lidarr.
 
 **`.env`:** `QBITTORRENT_CONFIG_DIR`, `DOWNLOADS_DIR`
 
@@ -127,13 +130,13 @@ Torrent client used by Sonarr/Radarr/Lidarr
 docker compose up -d qbittorrent
 ```
 
-**Setup:** Open `http://localhost:8080` → default login is often `admin` / `adminadmin` (check container logs) → change password → set download path to `/downloads` → in each *arr app, add qBittorrent under **Settings → Download Clients**
+**Setup:** Open `http://localhost:8080` → default login is often `admin` / `adminadmin` (check container logs) → change password → set download path to `/downloads` → in each *arr app, add qBittorrent under **Settings → Download Clients**.
 
 ---
 
 ### Sonarr
 
-TV show automation
+TV show automation.
 
 **`.env`:** `SONARR_CONFIG_DIR`, `SONARR_TV_DIR`, `DOWNLOADS_DIR`
 
@@ -141,13 +144,13 @@ TV show automation
 docker compose up -d sonarr
 ```
 
-**Setup:** `http://localhost:8989` → connect Prowlarr + qBittorrent → add root folder `/tv` → add series
+**Setup:** `http://localhost:8989` → connect Prowlarr + qBittorrent → add root folder `/tv` → add series.
 
 ---
 
 ### Radarr
 
-Movie automation
+Movie automation.
 
 **`.env`:** `RADARR_CONFIG_DIR`, `RADARR_MOVIES_DIR`, `DOWNLOADS_DIR`
 
@@ -155,13 +158,13 @@ Movie automation
 docker compose up -d radarr
 ```
 
-**Setup:** `http://localhost:7878` → connect Prowlarr + qBittorrent → add root folder `/movies`
+**Setup:** `http://localhost:7878` → connect Prowlarr + qBittorrent → add root folder `/movies`.
 
 ---
 
 ### Lidarr
 
-Music automation
+Music automation.
 
 **`.env`:** `LIDARR_CONFIG_DIR`, `LIDARR_MUSIC_DIR`, `DOWNLOADS_DIR`
 
@@ -169,13 +172,13 @@ Music automation
 docker compose up -d lidarr
 ```
 
-**Setup:** `http://localhost:8686` → connect Prowlarr + qBittorrent → add root folder `/music`
+**Setup:** `http://localhost:8686` → connect Prowlarr + qBittorrent → add root folder `/music`.
 
 ---
 
 ### YouTubeDL-Material
 
-Download YouTube/audio for your music library
+Download YouTube/audio for your music library.
 
 **`.env`:** `YTDL_CONFIG_DIR`, `YTDL_DOWNLOADS_DIR`
 
@@ -183,13 +186,13 @@ Download YouTube/audio for your music library
 docker compose up -d ytdl-material
 ```
 
-**Setup:** `http://localhost:8998` → complete the web wizard → point output to `/app/audio`
+**Setup:** `http://localhost:8998` → complete the web wizard → point output to `/app/audio`.
 
 ---
 
 ### Beets
 
-Music library tagger/organizer (CLI-focused; runs alongside Lidarr)
+Music library tagger/organizer (CLI-focused; runs alongside Lidarr).
 
 **`.env`:** `BEETS_CONFIG_DIR`, `LIDARR_MUSIC_DIR`, `DOWNLOADS_DIR`
 
@@ -197,7 +200,24 @@ Music library tagger/organizer (CLI-focused; runs alongside Lidarr)
 docker compose up -d beets
 ```
 
-**Setup:** Exec into the container and run `beet` commands, or configure `config.yaml` in your beets config dir. Shares the same music folder as Lidarr/Navidrome
+**Setup:** Exec into the container and run `beet` commands, or configure `config.yaml` in your beets config dir. Shares the same music folder as Lidarr/Navidrome.
+
+---
+
+### Seerr + SuggestArr
+
+Watch-based recommendations (SuggestArr) that can auto-request into Sonarr/Radarr via Seerr.
+
+**`.env`:** `SEERR_CONFIG_DIR`, `SUGGESTARR_CONFIG_DIR`, `TMDB_API_KEY` (free from [TMDb API](https://www.themoviedb.org/settings/api))
+
+```bash
+docker compose up -d seerr suggestarr
+```
+
+- **Seerr:** `http://localhost:5055` — Jellyfin login, libraries, Sonarr/Radarr services
+- **SuggestArr:** `http://localhost:5000` — paste TMDb API key under config, then run/enable the recommendation job
+
+Add Cloudflare Tunnel public hostnames for `seerr` / `suggestarr` → `http://caddy:80` if you want HTTPS.
 
 ---
 
@@ -205,11 +225,11 @@ docker compose up -d beets
 
 ### Jellyfin
 
-Video streaming with optional Intel Quick Sync transcoding
+Video streaming with optional Intel Quick Sync transcoding.
 
 **`.env`:** `JELLYFIN_CONFIG_DIR`, `JELLYFIN_TV_DIR`, `JELLYFIN_MOVIES_DIR`, `JELLYFIN_CACHE_DIR`
 
-Uses **`network_mode: host`** — it listens on port **8096** on the host (Caddy proxies via `host.docker.internal:8096`)
+Uses **`network_mode: host`** — it listens on port **8096** on the host (Caddy proxies via `host.docker.internal:8096`).
 
 ```bash
 docker compose up -d jellyfin
@@ -217,17 +237,17 @@ docker compose up -d jellyfin
 
 **Setup:**
 
-1. Open `http://localhost:8096` and create an admin account
-2. **Dashboard → Libraries** → add `/media/Movies` and `/media/Anime` (map to your movie/TV paths)
-3. For hardware transcoding: **Dashboard → Playback → Transcoding** → enable hardware acceleration (QSV/VAAPI). Requires `/dev/dri/renderD128` on the host
+1. Open `http://localhost:8096` and create an admin account.
+2. **Dashboard → Libraries** → add `/media/Movies` and `/media/Anime` (map to your movie/TV paths).
+3. For hardware transcoding: **Dashboard → Playback → Transcoding** → enable hardware acceleration (QSV/VAAPI). Requires `/dev/dri/renderD128` on the host.
 
-**Public URL:** `https://jellyfin.yourdomain.com` (via tunnel)
+**Public URL:** `https://jellyfin.yourdomain.com` (via tunnel).
 
 ---
 
 ### Navidrome
 
-Lightweight music streaming server
+Lightweight music streaming server.
 
 **`.env`:** `NAVIDROME_CONFIG_DIR`, `NAVIDROME_MUSIC_DIR`
 
@@ -235,7 +255,7 @@ Lightweight music streaming server
 docker compose up -d navidrome
 ```
 
-**Setup:** Open `http://localhost:4533` → first user becomes admin → music is read from `/music` (same library as Lidarr)
+**Setup:** Open `http://localhost:4533` → first user becomes admin → music is read from `/music` (same library as Lidarr).
 
 **Public URL:** `https://music.yourdomain.com`
 
@@ -243,17 +263,17 @@ docker compose up -d navidrome
 
 ## Photos — Immich
 
-Self-hosted Google Photos alternative
+Self-hosted Google Photos alternative.
 
 **`.env`:** `IMMICH_UPLOAD_LOCATION`, `IMMICH_DB_DATA_LOCATION`, `IMMICH_MODEL_CACHE_DIR`, `DB_USERNAME`, `DB_PASSWORD`, `IMMICH_SERVER_URL`
 
-Set `IMMICH_SERVER_URL` to your public URL (e.g. `https://photos.yourdomain.com`) when using the tunnel
+Set `IMMICH_SERVER_URL` to your public URL (e.g. `https://photos.yourdomain.com`) when using the tunnel.
 
 ```bash
 docker compose up -d immich-server immich-microservices immich-machine-learning redis database
 ```
 
-**Setup:** Open `http://localhost:2283` or your public URL → create admin account → install mobile apps and point them at your server URL
+**Setup:** Open `http://localhost:2283` or your public URL → create admin account → install mobile apps and point them at your server URL.
 
 **Public URL:** `https://photos.yourdomain.com`
 
@@ -261,7 +281,7 @@ docker compose up -d immich-server immich-microservices immich-machine-learning 
 
 ## Cloud & office — Nextcloud
 
-Files, sync, and document editing via built-in Collabora CODE
+Files, sync, and document editing via built-in Collabora CODE.
 
 **`.env`:** `NEXTCLOUD_DOMAIN`, `NEXTCLOUD_ADMIN_USER`, `NEXTCLOUD_ADMIN_PASSWORD`, `NEXTCLOUD_DB_PASSWORD`, `NEXTCLOUD_HTML_DIR`, `NEXTCLOUD_DATA_DIR`, `NEXTCLOUD_DB_DATA_LOCATION`
 
@@ -273,21 +293,21 @@ docker compose restart caddy
 
 **Setup:**
 
-1. Visit `https://cloud.yourdomain.com` and log in with your admin credentials
-2. **Apps** → enable **Nextcloud Office** and **Built-in CODE Server**
+1. Visit `https://cloud.yourdomain.com` and log in with your admin credentials.
+2. **Apps** → enable **Nextcloud Office** and **Built-in CODE Server**.
 3. If office does not connect automatically:
 
 ```bash
 docker exec -u www-data nextcloud php occ richdocuments:activate-config
 ```
 
-See [nextcloud/README.md](nextcloud/README.md) for more detail
+See [nextcloud/README.md](nextcloud/README.md) for more detail.
 
 ---
 
 ## Chat & calls — Matrix
 
-Synapse homeserver, Element web client, Cloudflare TURN for legacy VoIP, and LiveKit for Element X video calls
+Synapse homeserver, Element web client, Cloudflare TURN for legacy VoIP, and LiveKit for Element X video calls.
 
 ### Synapse (first-time install)
 
@@ -316,7 +336,7 @@ docker exec -it synapse register_new_matrix_user \
 
 ### Element
 
-**Config:** `matrix/element/config.json` — set `base_url` and `server_name`
+**Config:** `matrix/element/config.json` — set `base_url` and `server_name`.
 
 ```bash
 docker compose up -d element
@@ -326,11 +346,11 @@ docker compose up -d element
 
 ### Cloudflare TURN (turnify)
 
-Needed for Matrix 1:1 VoIP when UDP is blocked
+Needed for Matrix 1:1 VoIP when UDP is blocked.
 
 **`.env`:** `CF_TURN_TOKEN_ID`, `CF_TURN_API_TOKEN`
 
-Create a TURN key: Cloudflare Dashboard → **Realtime → TURN → Create**
+Create a TURN key: Cloudflare Dashboard → **Realtime → TURN → Create**.
 
 ```bash
 docker compose up -d turnify
@@ -354,7 +374,7 @@ docker compose up -d livekit lk-jwt-service
 docker compose restart caddy
 ```
 
-After deploy, Element X users may need to clear app cache and re-login so `.well-known` picks up the LiveKit backend
+After deploy, Element X users may need to clear app cache and re-login so `.well-known` picks up the LiveKit backend.
 
 Full details: [matrix/MATRIX_RTC_SETUP.md](matrix/MATRIX_RTC_SETUP.md)
 
@@ -367,7 +387,7 @@ Full details: [matrix/MATRIX_RTC_SETUP.md](matrix/MATRIX_RTC_SETUP.md)
 
 ## Monitoring
 
-Grafana dashboards, Prometheus metrics, Loki logs (including SSH auth and *arr logs via Alloy)
+Grafana dashboards, Prometheus metrics, Loki logs (including SSH auth and *arr logs via Alloy).
 
 **`.env`:** `MONITORING_DIR`, `MONITORING_PASSWORD`, `MONITORING_ADMIN_EMAIL`
 
@@ -379,9 +399,9 @@ docker compose restart caddy
 
 **Setup:**
 
-1. Open `http://localhost:3000` or `https://grafana.yourdomain.com`
-2. Log in with username from `MONITORING_ADMIN_EMAIL` and `MONITORING_PASSWORD`
-3. Pre-provisioned dashboards load automatically from `monitoring/grafana/provisioning/`
+1. Open `http://localhost:3000` or `https://grafana.yourdomain.com`.
+2. Log in with username from `MONITORING_ADMIN_EMAIL` and `MONITORING_PASSWORD`.
+3. Pre-provisioned dashboards load automatically from `monitoring/grafana/provisioning/`.
 
 After changing `MONITORING_PASSWORD`:
 
@@ -397,7 +417,7 @@ Grafana sends mail via Postfix on the host. Configure Cloudflare Email Sending:
 sudo ./scripts/setup-cloudflare-email.sh YOUR_CLOUDFLARE_API_TOKEN alert@yourdomain.com
 ```
 
-Update the alert recipient in `monitoring/grafana/provisioning/alerting/contact-points.yml`
+Update the alert recipient in `monitoring/grafana/provisioning/alerting/contact-points.yml`.
 
 ---
 
@@ -417,7 +437,7 @@ Update the alert recipient in `monitoring/grafana/provisioning/alerting/contact-
 | Jellyfin | 8096 (host network) |
 | cAdvisor | 8081 |
 
-Most services are intended for HTTPS access via Cloudflare Tunnel rather than exposing these ports publicly
+Most services are intended for HTTPS access via Cloudflare Tunnel rather than exposing these ports publicly.
 
 ---
 

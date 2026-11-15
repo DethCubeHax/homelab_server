@@ -1,0 +1,16 @@
+apiVersion: 1
+
+contactPoints:
+  - orgId: 1
+    name: homelab-manager
+    receivers:
+      - uid: homelab-manager-webhook
+        type: webhook
+        settings:
+          url: http://homelab_manager:8081/alert
+          httpMethod: POST
+
+policies:
+  - orgId: 1
+    receiver: homelab-manager
+    group_by: ['...']

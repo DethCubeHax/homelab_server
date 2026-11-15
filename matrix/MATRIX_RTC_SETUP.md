@@ -1,6 +1,6 @@
 # MatrixRTC (Element X video calls)
 
-Self-hosted LiveKit + lk-jwt-service for Element X / Element Web calls
+Self-hosted LiveKit + lk-jwt-service for Element X / Element Web calls.
 
 ## What was added
 
@@ -19,7 +19,7 @@ Element X caches `.well-known` on first login. After this change, each phone mus
 1. **Settings → Apps → Element X → Clear cache** (Android)
 2. Log out and log back in
 
-Or calls may still point at the old matrix.org backend
+Or calls may still point at the old matrix.org backend.
 
 ## Update Cloudflare Worker
 
@@ -42,11 +42,11 @@ to your home IP is blocked, add a **TCP** public hostname in Cloudflare Zero Tru
 3. **Service type:** TCP
 4. **URL:** `livekit:5349` (docker service name on `media_net`)
 
-Clients will use `turns:matrix.example.com:5349` via Cloudflare’s edge
+Clients will use `turns:matrix.example.com:5349` via Cloudflare’s edge.
 
 The bundled cert is self-signed for `matrix.example.com`. For best mobile
 compatibility, replace `matrix/livekit/certs/tls.crt` and `tls.key` with a
-Cloudflare Origin Certificate or other trusted cert for that hostname
+Cloudflare Origin Certificate or other trusted cert for that hostname.
 
 ## Verify
 
@@ -82,4 +82,4 @@ LiveKit API key/secret must match in both places:
      -days 3650 -subj "/CN=matrix.example.com"
    ```
 
-Keep `.env` and `livekit.yaml` in sync if you rotate keys
+Keep `.env` and `livekit.yaml` in sync if you rotate keys.
